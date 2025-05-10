@@ -112,3 +112,6 @@ To run tests with coverage report, run the following command
 | :-------- | :------- | :--------------------------------------------------|
 | `userId`  | `string` | **Required**. Id of user (should be valid v4 uuid) |
 
+## Notes
+
+- Used `tsx` insted of `nodemon` or `ts-node-dev` for better compatibility

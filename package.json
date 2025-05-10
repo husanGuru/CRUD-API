@@ -6,7 +6,7 @@
   "scripts": {
     "start:dev": "tsx watch src/run.ts",
     "start:prod": "webpack --config webpack.config.js && node dist/bundle.js",
-    "start:multi": "tsc && node dist/cluster.js",
+    "start:multi": "tsx watch src/cluster.ts",
     "build": "webpack --config webpack.config.js",
     "typecheck": "tsc --noEmit",
     "test": "set NODE_OPTIONS=--experimental-vm-modules & npx jest --verbose  --runInBand --detectOpenHandles",
