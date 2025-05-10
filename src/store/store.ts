@@ -41,6 +41,7 @@ export function addUser({
   users.push(user);
   return user;
 }
+
 export function updateUser(
   id: string,
   {

@@ -16,8 +16,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
-const PORT = process.env.PORT || 3000;
-
 const server = http.createServer();
 
 server.on("request", (req: IncomingMessage & { pathMatches: boolean }, res) => {
@@ -113,8 +111,8 @@ server.on("error", (err) => {
   console.error(err);
 });
 
-server.listen(PORT, () => {
-  console.log(`Listening to the port ${PORT}`);
-});
+// server.listen(PORT, () => {
+//   console.log(`Listening to the port ${PORT}`);
+// });
 
 export default server;

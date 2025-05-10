@@ -43,6 +43,8 @@ Just to build ts project (generate js)
 ```
 ## Running Tests
 
+** tests are run using supertest package, so there is no need to run the app in parallel
+
 To run tests, run the following command
 
 ```bash
