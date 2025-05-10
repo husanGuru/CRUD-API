@@ -8,7 +8,8 @@
     "start:prod": "tsc && node dist/app.js",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "set NODE_OPTIONS=--experimental-vm-modules & npx jest --runInBand --detectOpenHandles"
+    "test": "set NODE_OPTIONS=--experimental-vm-modules & npx jest --runInBand --detectOpenHandles",
+    "test:coverage": "set NODE_OPTIONS=--experimental-vm-modules & npx jest --runInBand --detectOpenHandles --collectCoverage"
   },
   "repository": {
     "type": "git",
