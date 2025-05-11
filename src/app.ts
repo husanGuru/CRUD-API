@@ -142,15 +142,16 @@ server.on("request", (req: IncomingMessage & { pathMatches: boolean }, res) => {
       let status;
       let message;
       if (CLUSTER_MODE) {
-        ({ message, status } = await multiCommunicate({
+        ({ status, message } = await multiCommunicate({
           type: "delete",
           payload: { userId: param.userId },
         }));
       } else {
         ({ status, message } = deleteUser(param.userId));
       }
+
       res.statusCode = status;
-      res.write(JSON.stringify({ message }));
+      res.write(JSON.stringify({ message: message })); //if status 204 response body will be empty
       res.end();
     });
 
