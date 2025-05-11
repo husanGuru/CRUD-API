@@ -24,6 +24,9 @@ Install dependencies
   npm install
 ```
 
+> [!NOTE]
+> 📝 Default port is 3000 (can be changed in .env file)
+
 Start the dev server (watches file changes)
 
 ```bash
