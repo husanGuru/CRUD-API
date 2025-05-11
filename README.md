@@ -36,6 +36,12 @@ Start the prod server (with ts build)
   npm run start:prod
 ```
 
+Start the app with load balancer (using Cluster API)
+
+```bash
+  npm run start:multi
+```
+
 Just to build ts project (generate js)
 
 ```bash

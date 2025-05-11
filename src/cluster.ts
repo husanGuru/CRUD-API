@@ -9,6 +9,7 @@ import {
   deleteUser,
   updateUser,
 } from "./store/store";
+import { Payload, SendType } from "./types/cluster.types";
 
 const numCPUs = availableParallelism();
 const PORT = Number(process.env.PORT) || 3000;
@@ -22,30 +23,47 @@ if (cluster.isPrimary) {
   // Fork workers.
   for (let i = 1; i <= numWorkers; i++) {
     const port = PORT + i;
-    const worker = cluster.fork({ PORT: port, CLUSTER_MODE: true });
+    const worker = cluster.fork({ PORT: port });
     workerPorts.push(port);
 
-    worker.on("message", (msg) => {
-      if (msg.type === "getAll") {
-        worker.send({ type: "db", data: getUsers() });
-      }
-
-      if (msg.type === "getById") {
-        worker.send({ type: "db", data: getUserById(msg.payload) });
-      }
-
-      if (msg.type === "add") {
-        worker.send({ type: "db", data: addUser(msg.payload) });
-      }
-      if (msg.type === "update") {
-        const { id, ...rest } = msg.payload;
-        worker.send({
-          type: "ok",
-          data: updateUser(id, { ...rest }),
-        });
-      }
-      if (msg.type === "delete") {
-        worker.send({ type: "ok", data: deleteUser(msg.payload) });
+    worker.on("message", (msg: { type: SendType; payload: Payload }) => {
+      switch (msg.type) {
+        case "getAll":
+          worker.send({ type: "db", data: getUsers() });
+          break;
+        case "getById":
+          if (msg.payload.userId) {
+            worker.send({ type: "db", data: getUserById(msg.payload.userId) });
+          }
+          break;
+        case "add":
+          if (msg.payload.username && msg.payload.age && msg.payload.hobbies) {
+            worker.send({
+              type: "db",
+              data: addUser({
+                username: msg.payload.username,
+                age: msg.payload.age,
+                hobbies: msg.payload.hobbies,
+              }),
+            });
+          }
+          break;
+        case "update":
+          if (msg.payload.userId) {
+            const { userId, ...rest } = msg.payload;
+            worker.send({
+              type: "db",
+              data: updateUser(userId, { ...rest }),
+            });
+          }
+          break;
+        case "delete":
+          if (msg.payload.userId) {
+            worker.send({ type: "db", data: deleteUser(msg.payload.userId) });
+          }
+          break;
+        default:
+          break;
       }
     });
   }

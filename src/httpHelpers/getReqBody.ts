@@ -10,7 +10,17 @@ export function getReqBody(
     });
 
     req.on("end", () => {
-      resolve(JSON.parse(data));
+      try {
+        const parsedData = JSON.parse(data);
+        resolve(parsedData);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (_err) {
+        reject(
+          new Error(
+            "Could not parse request body, please pass correct json format"
+          )
+        );
+      }
     });
 
     req.on("error", (err) => {

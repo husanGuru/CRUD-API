@@ -11,7 +11,7 @@ import {
   updateUser,
 } from "./store/store";
 import { getReqBody } from "./httpHelpers/getReqBody";
-import { User } from "./store/user";
+import { multiCommunicate } from "./utils/multi";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,47 +22,37 @@ const CLUSTER_MODE = process.env.CLUSTER_MODE ?? false;
 
 server.on("request", (req: IncomingMessage & { pathMatches: boolean }, res) => {
   try {
-    console.log(process.env.PORT);
-
     res.setHeader("Content-Type", "application/json");
 
-    httpHelpers.get("/api/users", req, () => {
+    httpHelpers.get("/api/users", req, async () => {
       res.statusCode = 200;
-      if (CLUSTER_MODE && process.send) {
-        process.send({ type: "getAll" });
-        process.once("message", (msg: { type: string; data: unknown }) => {
-          if (msg?.type === "db") {
-            res.end(JSON.stringify(msg.data));
-          }
-        });
-        return;
+      let users;
+      if (CLUSTER_MODE) {
+        ({ data: users } = await multiCommunicate({ type: "getAll" }));
+      } else {
+        ({ data: users } = getUsers());
       }
-      res.write(JSON.stringify(getUsers()));
+      res.write(JSON.stringify(users));
       res.end();
     });
 
-    httpHelpers.get("/api/users/:userId", req, (param) => {
-      if (CLUSTER_MODE && process.send) {
-        process.send({ type: "getById", payload: param.userId });
-        process.once(
-          "message",
-          (msg: {
-            type: string;
-            data: { user?: User; message?: string; status?: number };
-          }) => {
-            if (msg?.type === "db") {
-              res.statusCode = msg.data?.status ?? 200;
-              res.write(
-                JSON.stringify(msg.data.user ?? { message: msg.data.message })
-              );
-              res.end();
-            }
-          }
-        );
-        return;
+    httpHelpers.get("/api/users/:userId", req, async (param) => {
+      let user;
+      let status;
+      let message;
+      if (CLUSTER_MODE) {
+        ({
+          data: user,
+          status,
+          message,
+        } = await multiCommunicate({
+          type: "getById",
+          payload: { userId: param.userId },
+        }));
+      } else {
+        ({ data: user, status, message } = getUserById(param.userId));
       }
 
-      const { user, status, message } = getUserById(param.userId);
       res.statusCode = status;
       res.write(JSON.stringify(user ?? { message }));
       res.end();
@@ -83,30 +73,35 @@ server.on("request", (req: IncomingMessage & { pathMatches: boolean }, res) => {
           return res.end();
         }
 
-        if (CLUSTER_MODE && process.send) {
-          process.send({ type: "add", payload: { username, age, hobbies } });
-          process.once("message", (msg: { type: string; data: unknown }) => {
-            if (msg?.type === "db") {
-              res.statusCode = 201;
-              res.write(JSON.stringify(msg.data));
-              res.end();
-            }
+        let user;
+        if (CLUSTER_MODE) {
+          user = await multiCommunicate({
+            type: "add",
+            payload: { username, age, hobbies },
           });
-          return;
+        } else {
+          ({ data: user } = addUser({ username, age, hobbies }));
         }
 
-        const user = addUser({ username, age, hobbies });
         res.statusCode = 201;
         res.write(JSON.stringify(user));
         res.end();
-      } catch (err) {
-        console.log(err);
+      } catch (err: unknown) {
         res.statusCode = 500;
-        res.write(
-          JSON.stringify({
-            message: "Something went wrong, please try again later",
-          })
-        );
+
+        if (err instanceof Error) {
+          res.write(
+            JSON.stringify({
+              message: err.message,
+            })
+          );
+        } else {
+          res.write(
+            JSON.stringify({
+              message: "Something went wrong, please try again later",
+            })
+          );
+        }
         res.end();
       }
     });
@@ -114,61 +109,46 @@ server.on("request", (req: IncomingMessage & { pathMatches: boolean }, res) => {
     httpHelpers.put("/api/users/:userId", req, async (param) => {
       const { username, age, hobbies } = await getReqBody(req);
 
-      if (CLUSTER_MODE && process.send) {
-        process.send({
+      let user;
+      let status;
+      let message;
+      if (CLUSTER_MODE) {
+        ({
+          data: user,
+          message,
+          status,
+        } = await multiCommunicate({
           type: "update",
-          payload: { id: param.userId, username, age, hobbies },
-        });
-        process.once(
-          "message",
-          (msg: {
-            type: string;
-            data: { user?: User; message?: string; status?: number };
-          }) => {
-            if (msg?.type === "db") {
-              res.statusCode = msg.data.status ?? 200;
-              res.write(
-                JSON.stringify(msg.data.user ?? { message: msg.data.message })
-              );
-              res.end();
-            }
-          }
-        );
-        return;
+          payload: { userId: param.userId, username, age, hobbies },
+        }));
+      } else {
+        ({
+          data: user,
+          message,
+          status,
+        } = updateUser(param.userId, {
+          username,
+          age,
+          hobbies,
+        }));
       }
 
-      const { user, message, status } = updateUser(param.userId, {
-        username,
-        age,
-        hobbies,
-      });
       res.statusCode = status;
       res.write(JSON.stringify(user ?? { message }));
       res.end();
     });
 
-    httpHelpers.delete("/api/users/:userId", req, (param) => {
-      if (CLUSTER_MODE && process.send) {
-        process.send({
+    httpHelpers.delete("/api/users/:userId", req, async (param) => {
+      let status;
+      let message;
+      if (CLUSTER_MODE) {
+        ({ message, status } = await multiCommunicate({
           type: "delete",
-          payload: param.userId,
-        });
-        process.once(
-          "message",
-          (msg: {
-            type: string;
-            data: { status: number; message: string };
-          }) => {
-            if (msg?.type === "db") {
-              res.statusCode = msg.data.status ?? 200;
-              res.write(JSON.stringify({ message: msg.data.message }));
-              res.end();
-            }
-          }
-        );
-        return;
+          payload: { userId: param.userId },
+        }));
+      } else {
+        ({ status, message } = deleteUser(param.userId));
       }
-      const { status, message } = deleteUser(param.userId);
       res.statusCode = status;
       res.write(JSON.stringify({ message }));
       res.end();

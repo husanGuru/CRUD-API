@@ -2,27 +2,29 @@ import { User } from "./user";
 
 import { validate, version } from "uuid";
 
+type ReturnType = {
+  status: number;
+  message?: string | null;
+  data?: User | User[] | null;
+};
+
 const users: User[] = [];
 
 function uuidValidateV4(uuid: string) {
   return validate(uuid) && version(uuid) === 4;
 }
 
-export function getUsers() {
-  return users;
+export function getUsers(): ReturnType {
+  return { data: users, status: 200 };
 }
 
-export function getUserById(id: string): {
-  status: number;
-  user?: User | null;
-  message?: string | null;
-} {
+export function getUserById(id: string): ReturnType {
   if (!uuidValidateV4(id)) {
     return { status: 400, message: "Invalid id" };
   }
   const user = users.find((user) => user.id === id);
   return {
-    user: user ?? null,
+    data: user ?? null,
     status: user ? 200 : 404,
     message: user ? null : "User not found",
   };
@@ -36,10 +38,10 @@ export function addUser({
   username: string;
   age: number;
   hobbies: string[];
-}) {
+}): ReturnType {
   const user = new User({ username, age, hobbies });
   users.push(user);
-  return user;
+  return { data: user, status: 201 };
 }
 
 export function updateUser(
@@ -53,7 +55,7 @@ export function updateUser(
     age?: number;
     hobbies?: string[];
   }
-) {
+): ReturnType {
   if (!uuidValidateV4(id)) {
     return { status: 400, message: "Invalid id" };
   }
@@ -68,10 +70,10 @@ export function updateUser(
     age: age ?? users[userIndex].age,
     hobbies: hobbies ?? users[userIndex].hobbies,
   };
-  return { status: 200, user: users[userIndex] };
+  return { status: 200, data: users[userIndex] };
 }
 
-export function deleteUser(id: string) {
+export function deleteUser(id: string): ReturnType {
   if (!uuidValidateV4(id)) {
     return { status: 400, message: "Invalid id" };
   }
